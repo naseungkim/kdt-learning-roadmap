@@ -554,6 +554,10 @@ body.light .card-badge.earned { color: #b91c1c; }
       <input id="login-name" class="login-input" type="text" placeholder="이름을 입력하세요" maxlength="20" />
     </div>
     <div class="login-section">
+      <div class="login-sec-label">이메일</div>
+      <input id="login-email" class="login-input" type="email" placeholder="example@teamsparta.co" />
+    </div>
+    <div class="login-section">
       <div class="login-sec-label">트랙 선택</div>
       <div class="track-grid">
         <div class="track-opt track-selected" data-track="standard" onclick="selectTrack(this)">
@@ -1155,9 +1159,11 @@ const MILESTONES = [
   { pct:100, emoji:'🏆', title:'완주 달성!', badge:'커머스 백엔드 개발자', sub:'전 과정을 완주했어요! 진짜 개발자가 됐어요!' },
 ];
 
+let currentEmail = null;
+
 function getUserKey() {
-  if (!currentUser) return 'standard_roadmap_v7';
-  return 'roadmap_' + selectedTrack + '_' + currentUser + '_v7';
+  if (!currentEmail) return 'standard_roadmap_v7';
+  return 'roadmap_' + selectedTrack + '_' + currentEmail.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_v7';
 }
 
 function selectTrack(el) {
@@ -1168,10 +1174,13 @@ function selectTrack(el) {
 }
 
 function doLogin() {
-  const name = (document.getElementById('login-name').value || '').trim();
-  if (!name) { showToast('이름을 입력해주세요!'); return; }
-  currentUser = name;
-  localStorage.setItem('roadmap_user', JSON.stringify({ name, track: selectedTrack }));
+  const name  = (document.getElementById('login-name').value  || '').trim();
+  const email = (document.getElementById('login-email').value || '').trim();
+  if (!name)  { showToast('이름을 입력해주세요!');  return; }
+  if (!email || !email.includes('@')) { showToast('이메일을 올바르게 입력해주세요!'); return; }
+  currentUser  = name;
+  currentEmail = email;
+  localStorage.setItem('roadmap_user', JSON.stringify({ name, email, track: selectedTrack }));
   document.getElementById('login-overlay').style.display = 'none';
   applyUserUI();
   initApp();
@@ -1187,7 +1196,8 @@ function checkAutoLogin() {
     const saved = localStorage.getItem('roadmap_user');
     if (saved) {
       const u = JSON.parse(saved);
-      currentUser = u.name;
+      currentUser  = u.name;
+      currentEmail = u.email || u.name;
       selectedTrack = u.track || 'standard';
       document.getElementById('login-overlay').style.display = 'none';
       return true;
@@ -1344,8 +1354,10 @@ try {
     initApp();
   }
   // 로그인 input 엔터키
-  const inp = document.getElementById('login-name');
-  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  const inp  = document.getElementById('login-name');
+  const inp2 = document.getElementById('login-email');
+  if (inp)  inp.addEventListener('keydown',  e => { if (e.key === 'Enter') doLogin(); });
+  if (inp2) inp2.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 } catch(e) {
   console.error('[로드맵 오류]', e);
   const layout = document.getElementById('layout');
