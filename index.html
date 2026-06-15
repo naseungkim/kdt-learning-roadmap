@@ -6,7 +6,7 @@
 <title>커머스 스프링 학습 로드맵</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -893,7 +893,14 @@ const SUPABASE_URL  = 'https://gnoymvjzqcentrqvtthf.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdub3ltdmp6cWNlbnRycXZ0dGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTI5NzksImV4cCI6MjA5NDM4ODk3OX0.wU0L34vQRlTG9jJ45lJx0bfcoGqJK0FlZm52f6BbZn0';
 let _sb = null;
 function getSB() {
-  if (!_sb && window.supabase) _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  if (_sb) return _sb;
+  try {
+    // UMD 빌드는 window.supabase 또는 전역 supabase로 노출됨
+    const lib = (typeof supabasejs !== 'undefined') ? supabasejs
+               : (window.supabase && window.supabase.createClient) ? window.supabase
+               : null;
+    if (lib) _sb = lib.createClient(SUPABASE_URL, SUPABASE_ANON);
+  } catch(e) { console.error('[SB init]', e); }
   return _sb;
 }
 
@@ -902,17 +909,20 @@ function saveToSupabase() {
   if (!currentEmail) return;
   clearTimeout(_sbSaveTimer);
   _sbSaveTimer = setTimeout(async () => {
-    const sb = getSB();
-    if (!sb) return;
-    const pct = globalPct ? globalPct() : 0;
-    await sb.from('roadmap_progress').upsert({
-      email: currentEmail.toLowerCase(),
-      track: selectedTrack || 'standard',
-      name:  currentUser || '',
-      checked_items: state.checked || {},
-      total_pct:     pct,
-      updated_at:    new Date().toISOString()
-    }, { onConflict: 'email,track' });
+    try {
+      const sb = getSB();
+      if (!sb) { console.warn('[SB] client 초기화 실패 — window.supabase 없음'); return; }
+      const pct = (typeof globalPct === 'function') ? globalPct() : 0;
+      const { error } = await sb.from('roadmap_progress').upsert({
+        email: currentEmail.toLowerCase(),
+        track: selectedTrack || 'standard',
+        name:  currentUser  || '',
+        checked_items: state.checked || {},
+        total_pct:     pct,
+        updated_at:    new Date().toISOString()
+      }, { onConflict: 'email,track' });
+      if (error) console.error('[SB upsert 오류]', error.message, error.details);
+    } catch(e) { console.error('[SB saveToSupabase 예외]', e); }
   }, 1000);
 }
 
