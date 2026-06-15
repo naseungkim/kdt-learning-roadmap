@@ -893,7 +893,7 @@ const SUPABASE_URL  = 'https://gnoymvjzqcentrqvtthf.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdub3ltdmp6cWNlbnRycXZ0dGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTI5NzksImV4cCI6MjA5NDM4ODk3OX0.wU0L34vQRlTG9jJ45lJx0bfcoGqJK0FlZm52f6BbZn0';
 let _sb = null;
 function getSB() {
-  if (!_sb && window.supabase) _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { db: { schema: 'kim_naseung' } });
+  if (!_sb && window.supabase) _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   return _sb;
 }
 

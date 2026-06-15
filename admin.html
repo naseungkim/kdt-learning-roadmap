@@ -281,7 +281,6 @@ tbody td { padding: 14px 16px; font-size: 14px; vertical-align: middle; }
 const ADMIN_PW      = 'sparta2026';
 const SUPABASE_URL  = 'https://gnoymvjzqcentrqvtthf.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdub3ltdmp6cWNlbnRycXZ0dGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTI5NzksImV4cCI6MjA5NDM4ODk3OX0.wU0L34vQRlTG9jJ45lJx0bfcoGqJK0FlZm52f6BbZn0';
-const SCHEMA        = 'kim_naseung';
 
 const TRACK_LABELS = {
   standard:  '스탠다드',
@@ -361,7 +360,7 @@ function doAdminLogin() {
   sessionStorage.setItem('admin_auth', '1');
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'block';
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { db: { schema: SCHEMA } });
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   loadData();
 }
 
@@ -378,7 +377,7 @@ document.getElementById('admin-pw').addEventListener('keydown', e => {
 if (sessionStorage.getItem('admin_auth') === '1') {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'block';
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { db: { schema: SCHEMA } });
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   loadData();
 }
 
