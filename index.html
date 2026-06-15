@@ -1145,6 +1145,8 @@ function toggleItem(itemId) {
   }
 
   updateHeader();
+  if (typeof checkMilestone === 'function') checkMilestone();
+  if (currentView === 'bingo') renderBingo();
 }
 
 /* ─── 로그인 ─── */
@@ -1226,7 +1228,8 @@ function setView(mode, btn) {
   } else {
     bingoSec.classList.remove('bingo-on');
     layoutEl.style.display = 'block';
-    render();
+    renderWithFilter(mode);
+    updateHeader();
   }
 }
 
@@ -1286,44 +1289,31 @@ function closeMilestone() {
   setTimeout(() => { ov.style.display = 'none'; }, 250);
 }
 
-/* ─── render 확장 (뷰 필터) ─── */
-const _origRender = render;
-function render() {
-  if (currentView === 'bingo') { renderBingo(); return; }
+/* ─── 뷰 필터 렌더 (원본 render 오버라이드 없음) ─── */
+function renderWithFilter(mode) {
   const layout = document.getElementById('layout');
   layout.innerHTML = '';
-  const all      = PHASES;
-  const chapters = all.filter(p => p.type === 'chapter');
-  const projects = all.filter(p => p.type === 'project');
-  const show     = currentView === 'chapter' ? chapters : currentView === 'project' ? projects : null;
+  const chapters = PHASES.filter(p => p.type === 'chapter');
+  const projects = PHASES.filter(p => p.type === 'project');
   const countMeta = list => { const t=list.reduce((s,p)=>s+p.items.length,0), d=list.reduce((s,p)=>s+phaseChecked(p),0); return d+'/'+t+' 완료'; };
-
-  if (currentView === 'all' || currentView === 'chapter') {
-    const list = currentView === 'all' ? chapters : chapters;
+  if (mode === 'all' || mode === 'chapter') {
     const chWrap = document.createElement('div');
     chWrap.innerHTML = `<div class="section-header"><span class="section-title">학습 챕터</span><span class="section-meta" id="meta-chapter">${countMeta(chapters)}</span></div>`;
     layout.appendChild(chWrap);
     chapters.forEach(p => layout.appendChild(buildCard(p)));
   }
-  if (currentView === 'all') {
+  if (mode === 'all') {
     const divWrap = document.createElement('div');
     divWrap.innerHTML = `<hr class="section-divider"><div class="section-header"><span class="section-title">프로젝트</span><span class="section-meta" id="meta-project">${countMeta(projects)}</span></div>`;
     layout.appendChild(divWrap);
     projects.forEach(p => layout.appendChild(buildCard(p)));
   }
-  if (currentView === 'project') {
+  if (mode === 'project') {
     const prWrap = document.createElement('div');
     prWrap.innerHTML = `<div class="section-header"><span class="section-title">프로젝트</span><span class="section-meta" id="meta-project">${countMeta(projects)}</span></div>`;
     layout.appendChild(prWrap);
     projects.forEach(p => layout.appendChild(buildCard(p)));
   }
-}
-
-/* ─── toggleItem에 마일스톤 체크 주입 ─── */
-const _origToggleItem = toggleItem;
-function toggleItem(itemId) {
-  _origToggleItem(itemId);
-  checkMilestone();
 }
 
 /* ─── 앱 초기화 (로그인 후) ─── */
@@ -1342,7 +1332,7 @@ function initApp() {
   } catch(e) {}
   state.prevGrowthCount = completedChCount();
   lastMilestonePct = globalPct();
-  render();
+  renderWithFilter(currentView);
   updateHeader();
 }
 
