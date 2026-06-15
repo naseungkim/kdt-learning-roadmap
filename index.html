@@ -6,6 +6,7 @@
 <title>커머스 스프링 학습 로드맵</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -884,6 +885,35 @@ function saveState() {
       checked: state.checked, titles: state.titles, celebrateDone: state.celebrateDone
     }));
   } catch(e) {}
+  saveToSupabase();
+}
+
+/* ─── Supabase 연동 ─── */
+const SUPABASE_URL  = 'https://gnoymvjzqcentrqvtthf.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdub3ltdmp6cWNlbnRycXZ0dGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTI5NzksImV4cCI6MjA5NDM4ODk3OX0.wU0L34vQRlTG9jJ45lJx0bfcoGqJK0FlZm52f6BbZn0';
+let _sb = null;
+function getSB() {
+  if (!_sb && window.supabase) _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { db: { schema: 'kim_naseung' } });
+  return _sb;
+}
+
+let _sbSaveTimer = null;
+function saveToSupabase() {
+  if (!currentEmail) return;
+  clearTimeout(_sbSaveTimer);
+  _sbSaveTimer = setTimeout(async () => {
+    const sb = getSB();
+    if (!sb) return;
+    const pct = globalPct ? globalPct() : 0;
+    await sb.from('roadmap_progress').upsert({
+      email: currentEmail.toLowerCase(),
+      track: selectedTrack || 'standard',
+      name:  currentUser || '',
+      checked_items: state.checked || {},
+      total_pct:     pct,
+      updated_at:    new Date().toISOString()
+    }, { onConflict: 'email,track' });
+  }, 1000);
 }
 
 const totalItems       = () => PHASES.reduce((s,p) => s + p.items.length, 0);

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학습 로드맵 어드민</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0d; --surface: #181818; --surface2: #222; --border: #2a2a2a;
+  --text: #f0f0f0; --sub: #888; --accent: #7c3aed; --accent2: #a78bfa;
+  --green: #22c55e; --yellow: #facc15; --red: #ef4444; --blue: #3b82f6;
+}
+body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* 로그인 */
+#login-screen {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; gap: 16px;
+}
+.login-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 40px; width: 360px; display: flex; flex-direction: column; gap: 16px;
+}
+.login-box h1 { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+.login-box p { font-size: 13px; color: var(--sub); text-align: center; }
+.login-box input {
+  width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+}
+.login-box input:focus { border-color: var(--accent); }
+.btn-primary {
+  padding: 12px; background: var(--accent); border: none; border-radius: 10px;
+  color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: opacity .2s;
+}
+.btn-primary:hover { opacity: .85; }
+.login-err { color: var(--red); font-size: 13px; text-align: center; display: none; }
+
+/* 어드민 레이아웃 */
+#admin-screen { display: none; }
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 32px; border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.top-bar h1 { font-size: 18px; font-weight: 700; }
+.top-bar-right { display: flex; align-items: center; gap: 16px; }
+.logout-btn {
+  padding: 8px 16px; background: transparent; border: 1px solid var(--border);
+  border-radius: 8px; color: var(--sub); font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.logout-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.main { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+/* 요약 카드 */
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+.summary-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+}
+.summary-card .label { font-size: 12px; color: var(--sub); margin-bottom: 8px; font-weight: 500; }
+.summary-card .value { font-size: 28px; font-weight: 700; }
+.summary-card .value.green { color: var(--green); }
+.summary-card .value.yellow { color: var(--yellow); }
+.summary-card .value.blue { color: var(--blue); }
+
+/* 필터/검색 */
+.toolbar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.toolbar input {
+  padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+  width: 240px;
+}
+.toolbar input:focus { border-color: var(--accent); }
+.toolbar select {
+  padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; cursor: pointer;
+}
+.refresh-btn {
+  padding: 10px 16px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.refresh-btn:hover { border-color: var(--accent); }
+.count-label { font-size: 13px; color: var(--sub); margin-left: auto; }
+
+/* 수강생 테이블 */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 14px 16px; background: var(--surface2); text-align: left; font-size: 12px;
+  font-weight: 600; color: var(--sub); letter-spacing: .05em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 14px 16px; font-size: 14px; vertical-align: middle; }
+.td-name { font-weight: 600; }
+.td-email { color: var(--sub); font-size: 13px; }
+.td-track { }
+.track-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f640;
+}
+
+/* 진행률 바 */
+.pct-wrap { display: flex; align-items: center; gap: 10px; }
+.pct-bar-bg { flex: 1; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.pct-bar-fill { height: 100%; border-radius: 999px; transition: width .3s; }
+.pct-text { font-size: 13px; font-weight: 700; min-width: 36px; text-align: right; }
+
+.td-updated { color: var(--sub); font-size: 12px; }
+
+/* 상세 패널 */
+#detail-panel {
+  position: fixed; top: 0; right: -480px; width: 480px; height: 100vh;
+  background: var(--surface); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  transition: right .3s ease; z-index: 100; overflow: hidden;
+}
+#detail-panel.open { right: 0; }
+.panel-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.panel-header h2 { font-size: 16px; font-weight: 700; }
+.panel-close {
+  background: none; border: none; color: var(--sub); font-size: 20px; cursor: pointer; line-height: 1;
+}
+.panel-close:hover { color: var(--text); }
+.panel-body { overflow-y: auto; padding: 20px 24px; flex: 1; }
+
+.panel-meta { margin-bottom: 20px; }
+.panel-meta p { font-size: 13px; color: var(--sub); margin-bottom: 4px; }
+.panel-meta strong { color: var(--text); }
+
+.panel-pct-big {
+  text-align: center; margin-bottom: 24px; padding: 16px;
+  background: var(--surface2); border-radius: 12px;
+}
+.panel-pct-big .n { font-size: 48px; font-weight: 800; }
+.panel-pct-big .lbl { font-size: 13px; color: var(--sub); margin-top: 4px; }
+
+/* 챕터별 섹션 */
+.chapter-section { margin-bottom: 20px; }
+.chapter-title {
+  font-size: 13px; font-weight: 700; color: var(--accent2);
+  padding: 8px 12px; background: var(--surface2); border-radius: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; margin-bottom: 4px;
+}
+.chapter-title .ch-pct { font-size: 12px; color: var(--sub); font-weight: 500; }
+.chapter-items { padding: 4px 0 0 0; display: none; }
+.chapter-items.open { display: block; }
+.item-row {
+  display: flex; align-items: center; gap: 8px; padding: 5px 12px;
+  font-size: 13px; border-radius: 6px;
+}
+.item-row.done { color: var(--green); }
+.item-row.todo { color: var(--sub); }
+.item-icon { font-size: 12px; flex-shrink: 0; }
+
+/* 오버레이 */
+#panel-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99;
+  display: none;
+}
+#panel-overlay.open { display: block; }
+
+/* 로딩 */
+.loading { text-align: center; padding: 60px; color: var(--sub); font-size: 14px; }
+.empty-row td { text-align: center; padding: 40px; color: var(--sub); font-size: 14px; }
+
+@media (max-width: 768px) {
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .main { padding: 16px; }
+  #detail-panel { width: 100%; right: -100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- 로그인 화면 -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>어드민 대시보드</h1>
+    <p>학습 로드맵 진행 현황 관리자 전용</p>
+    <input type="password" id="admin-pw" placeholder="관리자 비밀번호" />
+    <div class="login-err" id="pw-err">비밀번호가 틀렸어요.</div>
+    <button class="btn-primary" onclick="doAdminLogin()">로그인</button>
+  </div>
+</div>
+
+<!-- 어드민 메인 -->
+<div id="admin-screen">
+  <div class="top-bar">
+    <h1>학습 로드맵 어드민</h1>
+    <div class="top-bar-right">
+      <span id="last-updated" style="font-size:13px;color:var(--sub)"></span>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- 요약 -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="label">전체 수강생</div>
+        <div class="value blue" id="stat-total">-</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">평균 진행률</div>
+        <div class="value yellow" id="stat-avg">-</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">50% 이상</div>
+        <div class="value green" id="stat-half">-</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">완주 (100%)</div>
+        <div class="value green" id="stat-done">-</div>
+      </div>
+    </div>
+
+    <!-- 툴바 -->
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="이름 또는 이메일 검색" oninput="filterRows()" />
+      <select id="track-filter" onchange="filterRows()">
+        <option value="">전체 트랙</option>
+        <option value="standard">커머스 스프링 스탠다드</option>
+        <option value="basic">커머스 스프링 베이직</option>
+        <option value="challenge">커머스 스프링 챌린지</option>
+      </select>
+      <select id="sort-select" onchange="filterRows()">
+        <option value="pct_desc">진행률 높은순</option>
+        <option value="pct_asc">진행률 낮은순</option>
+        <option value="name">이름순</option>
+        <option value="updated">최근 업데이트순</option>
+      </select>
+      <button class="refresh-btn" onclick="loadData()">새로고침</button>
+      <span class="count-label" id="count-label"></span>
+    </div>
+
+    <!-- 테이블 -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>이름</th>
+            <th>이메일</th>
+            <th>트랙</th>
+            <th style="min-width:200px">진행률</th>
+            <th>마지막 활동</th>
+          </tr>
+        </thead>
+        <tbody id="student-tbody">
+          <tr><td colspan="5" class="loading">데이터 로딩 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 상세 패널 -->
+<div id="panel-overlay" onclick="closePanel()"></div>
+<div id="detail-panel">
+  <div class="panel-header">
+    <h2 id="panel-name">수강생 상세</h2>
+    <button class="panel-close" onclick="closePanel()">×</button>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<script>
+/* ─── 설정 ─── */
+const ADMIN_PW      = 'sparta2026';
+const SUPABASE_URL  = 'https://gnoymvjzqcentrqvtthf.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdub3ltdmp6cWNlbnRycXZ0dGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MTI5NzksImV4cCI6MjA5NDM4ODk3OX0.wU0L34vQRlTG9jJ45lJx0bfcoGqJK0FlZm52f6BbZn0';
+const SCHEMA        = 'kim_naseung';
+
+const TRACK_LABELS = {
+  standard:  '스탠다드',
+  basic:     '베이직',
+  challenge: '챌린지',
+};
+
+/* 커머스스프링 챕터 구조 — index.html PHASES 배열과 ID 동기화 */
+const CHAPTERS = [
+  { id:'p04', title:'자료구조 및 알고리즘', type:'chapter', items:[
+    { id:'p04_01', label:'시간/공간 복잡도 분석으로 효율적인 코드 선택' },
+    { id:'p04_02', label:'Stack/Queue 자료구조 구현과 활용' },
+  ]},
+  { id:'p05', title:'입문 Spring', type:'chapter', items:[
+    { id:'p05_01', label:'Spring MVC 기반의 RESTful API 설계' },
+    { id:'p05_02', label:'JPA와 Entity 설계로 데이터베이스 관리' },
+  ]},
+  { id:'p06', title:'숙련 Spring', type:'chapter', items:[
+    { id:'p06_01', label:'Session/JWT의 이해와 상황에 맞는 선택' },
+    { id:'p06_02', label:'IoC/DI 원칙으로 의존성 관리 코드 제작' },
+    { id:'p06_03', label:'JPA 영속성 컨텍스트의 이해와 엔티티 생명주기를 관리' },
+    { id:'p06_04', label:'JPA 연관관계 활용으로 도메인 모델 설계' },
+    { id:'p06_05', label:'요청 데이터 검증과 예외 처리 로직을 설계' },
+  ]},
+  { id:'p07', title:'고객 및 상품 관리 시스템 (PROJECT)', type:'project', items:[
+    { id:'p07_01', label:'사용자 권한(Role) 기반 접근 제어의 구현' },
+    { id:'p07_02', label:'상품 검색 및 조회 성능 개선 로직의 설계' },
+  ]},
+  { id:'p08', title:'심화 Spring', type:'chapter', items:[
+    { id:'p08_01', label:'Spring Security를 활용한 인증/인가의 체계적 구현' },
+    { id:'p08_02', label:'AOP로 공통 로직을 분리해 코드 중복 제거' },
+    { id:'p08_03', label:'N+1 문제를 발견하고 Fetch Join으로 해결' },
+    { id:'p08_04', label:'JUnit으로 단위/통합 테스트 작성' },
+  ]},
+  { id:'p09', title:'클라우드 기반 백엔드 설계', type:'chapter', items:[
+    { id:'p09_01', label:'AWS EC2/RDS로 실제 서비스를 클라우드에 배포' },
+    { id:'p09_02', label:'Docker로 애플리케이션 컨테이너화' },
+    { id:'p09_03', label:'CI/CD 파이프라인으로 자동 빌드/배포 환경 구성' },
+    { id:'p09_04', label:'VPC/Subnet으로 보안을 고려한 네트워크 설계' },
+  ]},
+  { id:'p10', title:'결제 시스템 프로젝트 (PROJECT)', type:'project', items:[
+    { id:'p10_01', label:'주문-결제 전체 도메인 설계와 실제 동작하는 결제 서비스를 제작' },
+    { id:'p10_02', label:'결제 트랜잭션 관리와 데이터 정합성을 보장' },
+  ]},
+  { id:'p11', title:'실시간 데이터 처리 아키텍처 설계', type:'chapter', items:[
+    { id:'p11_01', label:'Redis 캐싱으로 서비스 응답속도를 개선' },
+    { id:'p11_02', label:'B-Tree 인덱스를 이해하고 쿼리 성능을 최적화' },
+    { id:'p11_03', label:'낙관적/비관적 락으로 동시 접근 충돌 문제를 해결' },
+    { id:'p11_04', label:'Redis 분산 락으로 분산 환경의 동시성을 제어' },
+    { id:'p11_05', label:'WebSocket + STOMP로 실시간 채팅 기능을 구현' },
+    { id:'p11_06', label:'Redis Pub/Sub으로 다중 서버 환경의 메시지를 전달' },
+  ]},
+  { id:'p12', title:'실시간 채팅 프로젝트 (PROJECT)', type:'project', items:[
+    { id:'p12_01', label:'성능 문제를 직접 발견하고 Redis/인덱스로 개선' },
+  ]},
+  { id:'p13', title:'대용량 트래픽 처리 아키텍처 설계', type:'chapter', items:[
+    { id:'p13_01', label:'Kafka로 이벤트 기반 비동기 메시지 처리 시스템 구축' },
+    { id:'p13_02', label:'Redis ZSET으로 실시간 랭킹 시스템 구현' },
+    { id:'p13_03', label:'K6로 부하 테스트를 실행하고 병목 구간을 식별' },
+    { id:'p13_04', label:'Kafka DLT로 장애 상황에서도 메시지 손실 없는 처리' },
+  ]},
+  { id:'p14', title:'최종 프로젝트 (FINAL)', type:'project', items:[
+    { id:'p14_01', label:'서비스 기획부터 배포까지 풀스택 백엔드 프로젝트를 혼자 완성' },
+    { id:'p14_02', label:'부하 테스트 결과를 분석하고 아키텍처를 개선' },
+  ]},
+];
+
+/* ─── 로그인 ─── */
+let sb = null;
+let allRows = [];
+
+function doAdminLogin() {
+  const pw = document.getElementById('admin-pw').value;
+  const err = document.getElementById('pw-err');
+  if (pw !== ADMIN_PW) { err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  sessionStorage.setItem('admin_auth', '1');
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { db: { schema: SCHEMA } });
+  loadData();
+}
+
+function doLogout() {
+  sessionStorage.removeItem('admin_auth');
+  location.reload();
+}
+
+document.getElementById('admin-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doAdminLogin();
+});
+
+/* 자동 로그인 (새로고침 유지) */
+if (sessionStorage.getItem('admin_auth') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { db: { schema: SCHEMA } });
+  loadData();
+}
+
+/* ─── 데이터 로드 ─── */
+async function loadData() {
+  const tbody = document.getElementById('student-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="loading">로딩 중...</td></tr>';
+
+  const { data, error } = await sb.from('roadmap_progress').select('*').order('updated_at', { ascending: false });
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading" style="color:var(--red)">오류: ${error.message}</td></tr>`;
+    return;
+  }
+
+  allRows = data || [];
+  document.getElementById('last-updated').textContent = '마지막 갱신: ' + new Date().toLocaleTimeString('ko-KR');
+  updateStats();
+  filterRows();
+}
+
+function updateStats() {
+  const total = allRows.length;
+  const avg   = total ? Math.round(allRows.reduce((s,r) => s + (r.total_pct||0), 0) / total) : 0;
+  const half  = allRows.filter(r => (r.total_pct||0) >= 50).length;
+  const done  = allRows.filter(r => (r.total_pct||0) === 100).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-avg').textContent   = avg + '%';
+  document.getElementById('stat-half').textContent  = half;
+  document.getElementById('stat-done').textContent  = done;
+}
+
+/* ─── 필터·정렬 ─── */
+function filterRows() {
+  const q     = document.getElementById('search-input').value.toLowerCase();
+  const track = document.getElementById('track-filter').value;
+  const sort  = document.getElementById('sort-select').value;
+
+  let rows = allRows.filter(r => {
+    const matchQ = !q || (r.name||'').toLowerCase().includes(q) || (r.email||'').toLowerCase().includes(q);
+    const matchT = !track || r.track === track;
+    return matchQ && matchT;
+  });
+
+  rows.sort((a, b) => {
+    if (sort === 'pct_desc') return (b.total_pct||0) - (a.total_pct||0);
+    if (sort === 'pct_asc')  return (a.total_pct||0) - (b.total_pct||0);
+    if (sort === 'name')     return (a.name||'').localeCompare(b.name||'', 'ko');
+    if (sort === 'updated')  return new Date(b.updated_at) - new Date(a.updated_at);
+    return 0;
+  });
+
+  document.getElementById('count-label').textContent = `${rows.length}명`;
+  renderTable(rows);
+}
+
+/* ─── 테이블 렌더 ─── */
+function renderTable(rows) {
+  const tbody = document.getElementById('student-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">해당 조건의 수강생이 없어요.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((r, i) => {
+    const pct   = r.total_pct || 0;
+    const color = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : pct >= 25 ? 'var(--blue)' : 'var(--sub)';
+    const upd   = r.updated_at ? new Date(r.updated_at).toLocaleDateString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+    const trackLabel = TRACK_LABELS[r.track] || r.track || '-';
+
+    return `<tr onclick="openPanel(${i}, ${JSON.stringify(JSON.stringify(r)).slice(1,-1)})">
+      <td class="td-name">${r.name || '-'}</td>
+      <td class="td-email">${r.email || '-'}</td>
+      <td><span class="track-badge">${trackLabel}</span></td>
+      <td>
+        <div class="pct-wrap">
+          <div class="pct-bar-bg"><div class="pct-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span class="pct-text" style="color:${color}">${pct}%</span>
+        </div>
+      </td>
+      <td class="td-updated">${upd}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─── 상세 패널 ─── */
+let currentPanelRow = null;
+
+function openPanel(idx, rowJson) {
+  const r = allRows.find((_, i) => i === idx) || JSON.parse(rowJson);
+  currentPanelRow = r;
+
+  document.getElementById('panel-name').textContent = r.name || r.email;
+  document.getElementById('panel-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
+
+  const pct     = r.total_pct || 0;
+  const checked = r.checked_items || {};
+  const upd     = r.updated_at ? new Date(r.updated_at).toLocaleString('ko-KR') : '-';
+
+  let html = `
+    <div class="panel-meta">
+      <p>이메일: <strong>${r.email}</strong></p>
+      <p>트랙: <strong>${TRACK_LABELS[r.track] || r.track}</strong></p>
+      <p>마지막 활동: <strong>${upd}</strong></p>
+    </div>
+    <div class="panel-pct-big">
+      <div class="n" style="color:${pct>=100?'var(--green)':pct>=50?'var(--yellow)':'var(--accent2)'}">${pct}%</div>
+      <div class="lbl">전체 진행률</div>
+    </div>
+  `;
+
+  CHAPTERS.forEach(ch => {
+    const doneItems = ch.items.filter(item => !!checked[item.id]);
+    const chPct = ch.items.length ? Math.round(doneItems.length / ch.items.length * 100) : 0;
+    const sectionId = 'ch-items-' + ch.id;
+    const typeColor = ch.type === 'project' ? 'var(--yellow)' : 'var(--accent2)';
+
+    html += `
+      <div class="chapter-section">
+        <div class="chapter-title" style="color:${typeColor}" onclick="toggleChapter('${sectionId}')">
+          <span>${ch.title}</span>
+          <span class="ch-pct">${doneItems.length}/${ch.items.length} · ${chPct}%</span>
+        </div>
+        <div class="chapter-items" id="${sectionId}">
+          ${ch.items.map(item => {
+            const done = !!checked[item.id];
+            return `<div class="item-row ${done?'done':'todo'}">
+              <span class="item-icon">${done ? '✓' : '○'}</span>
+              <span>${item.label}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('panel-body').innerHTML = html;
+}
+
+function toggleChapter(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function closePanel() {
+  document.getElementById('panel-overlay').classList.remove('open');
+  document.getElementById('detail-panel').classList.remove('open');
+}
+</script>
+</body>
+</html>
